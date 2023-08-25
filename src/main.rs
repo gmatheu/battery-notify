@@ -47,7 +47,7 @@ pub(crate) mod acpi {
                 });
             },
             None => {
-                return Err(AcpiError);
+                Err(AcpiError)
             },
         }
     }
@@ -80,17 +80,17 @@ fn command(settings: CommandSettings) -> i32 {
                             .output()
                             .expect("Could not execute notify-send");
                     }
-                    return 0;
+                    0
                 },
                 Err(_) => {
                     eprintln!("Could not understand acpi output");
-                    return 1;
+                    1
                 }
             }
         },
         Err(_) => {
             eprintln!("Could not execute acpi");
-            return 1;
+            1
         }
     }
 }
@@ -117,7 +117,7 @@ mod tests {
         assert_eq!(status, 0);
 
         let exists = Path::new(notify_send_out).exists();
-        assert_eq!(exists, false);
+        assert!(!exists);
     }
 
     #[test]
@@ -132,7 +132,7 @@ mod tests {
         assert_eq!(status, 0);
 
         let exists = Path::new(notify_send_out).exists();
-        assert_eq!(exists, true);
+        assert!(exists);
     }
 
 }
