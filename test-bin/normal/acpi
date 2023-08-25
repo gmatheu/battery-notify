@@ -1,0 +1,2 @@
+#! /bin/bash
+echo "Battery 0: Discharging, 55%, 0:22:10 remaining"

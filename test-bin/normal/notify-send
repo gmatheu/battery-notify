@@ -1,0 +1,2 @@
+#! /bin/bash
+echo "notify-send arguments: $@" > tee .notify-send_normal.out
