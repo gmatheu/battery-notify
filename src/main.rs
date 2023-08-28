@@ -1,15 +1,17 @@
 use std::process::Command;
+
+use notifier::{CommandSettings, SendNotify, Notifier};
 mod acpi;
+mod notifier;
 
-struct CommandSettings {
-    critical_percent: u8,
-    critical_notification_timeout: i32,
-}
 
-fn command(settings: CommandSettings) -> i32 {
+
+fn command(optional_settings: Option<CommandSettings>) -> i32 {
+    let settings = optional_settings.unwrap_or_else(|| notifier::DEFAULT_COMMAND_SETTINGS);
     let critical_percent = settings.critical_percent;
     let acpi_result = Command::new("acpi").args(["-b"]).output();
 
+    let notifier: SendNotify = Notifier::new("Warning: Battery");
     match acpi_result {
         Ok(output) => {
             println!("acpi: {}", output.status);
@@ -20,17 +22,7 @@ fn command(settings: CommandSettings) -> i32 {
                 Ok(acpi_output) => {
                     let percent = acpi_output.percent;
                     if percent < critical_percent {
-                        Command::new("notify-send")
-                            .args([
-                                "-u",
-                                "critical",
-                                "Warning: Battery",
-                                &format!("Battery low {}%", percent),
-                                "-t",
-                                &settings.critical_notification_timeout.to_string(),
-                            ])
-                            .output()
-                            .expect("Could not execute notify-send");
+                        notifier.notify_critical(&format!("Battery low {}%", percent), settings.critical_notification_timeout)
                     }
                     0
                 }
@@ -48,10 +40,7 @@ fn command(settings: CommandSettings) -> i32 {
 }
 
 fn main() -> ! {
-    let status = command(CommandSettings {
-        critical_percent: 15,
-        critical_notification_timeout: 2000,
-    });
+    let status = command(None);
     std::process::exit(status);
 }
 
@@ -66,10 +55,7 @@ mod tests {
         fs::remove_file(notify_send_out).ok();
         env::set_var("PATH", "./test-bin/normal");
 
-        let status = command(CommandSettings {
-            critical_percent: 15,
-            critical_notification_timeout: 2000,
-        });
+        let status = command(None);
         assert_eq!(status, 0);
 
         let exists = Path::new(notify_send_out).exists();
@@ -84,10 +70,7 @@ mod tests {
         env::set_var("PATH", "./test-bin/critical-low");
         println!("After PATH:{}", env::var("PATH").unwrap());
 
-        let status = command(CommandSettings {
-            critical_percent: 15,
-            critical_notification_timeout: 2000,
-        });
+        let status = command(None);
         assert_eq!(status, 0);
 
         let exists = Path::new(notify_send_out).exists();
