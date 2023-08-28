@@ -16,6 +16,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
+    - name: Make test files executable
+      run: find test-bin -type f -exec chmod a+x {} +    
     - name: Build
       run: cargo build --verbose
     - name: Run tests
