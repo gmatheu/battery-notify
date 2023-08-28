@@ -1,10 +1,8 @@
 use std::process::Command;
 
-use notifier::{CommandSettings, SendNotify, Notifier};
+use notifier::{CommandSettings, Notifier, SendNotify};
 mod acpi;
 mod notifier;
-
-
 
 fn command(optional_settings: Option<CommandSettings>) -> i32 {
     let settings = optional_settings.unwrap_or(notifier::DEFAULT_COMMAND_SETTINGS);
@@ -12,6 +10,15 @@ fn command(optional_settings: Option<CommandSettings>) -> i32 {
     let acpi_result = Command::new("acpi").args(["-b"]).output();
 
     let notifier: SendNotify = Notifier::new("Warning: Battery");
+    let do_with_acpi_result = |acpi_output: acpi::AcpiOutput| {
+        let percent = acpi_output.percent;
+        if percent < critical_percent {
+            notifier.notify_critical(
+                &format!("Battery low {}%", percent),
+                settings.critical_notification_timeout,
+            )
+        }
+    };
     match acpi_result {
         Ok(output) => {
             println!("acpi: {}", output.status);
@@ -20,10 +27,7 @@ fn command(optional_settings: Option<CommandSettings>) -> i32 {
 
             match acpi::from_string(stdout) {
                 Ok(acpi_output) => {
-                    let percent = acpi_output.percent;
-                    if percent < critical_percent {
-                        notifier.notify_critical(&format!("Battery low {}%", percent), settings.critical_notification_timeout)
-                    }
+                    do_with_acpi_result(acpi_output);
                     0
                 }
                 Err(_) => {
