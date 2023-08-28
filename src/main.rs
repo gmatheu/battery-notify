@@ -7,7 +7,7 @@ mod notifier;
 
 
 fn command(optional_settings: Option<CommandSettings>) -> i32 {
-    let settings = optional_settings.unwrap_or_else(|| notifier::DEFAULT_COMMAND_SETTINGS);
+    let settings = optional_settings.unwrap_or(notifier::DEFAULT_COMMAND_SETTINGS);
     let critical_percent = settings.critical_percent;
     let acpi_result = Command::new("acpi").args(["-b"]).output();
 
