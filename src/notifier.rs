@@ -1,4 +1,5 @@
 use std::process::Command;
+use log::{debug, info, error};
 
 #[derive(Debug)]
 pub(crate) struct CommandSettings {
@@ -21,7 +22,7 @@ pub(crate) trait Notifier {
     fn notify(&self, message: &str, level: NotificationLevel, duration: i32);
 
     fn notify_critical(&self, message: &str, duration: i32) {
-        println!("Sending critical notification: {duration}");
+        info!("Sending critical notification: {duration}");
         self.notify(message, NotificationLevel::Critical, duration);
     }
 }
@@ -36,12 +37,12 @@ impl SendNotify {
             .output();
         match output {
             Ok(stdout) => {
-                println!("send-notify executed");
-                println!("{}", String::from_utf8(stdout.stdout).unwrap());
-                println!("{}", String::from_utf8(stdout.stderr).unwrap());
+                debug!("send-notify executed");
+                debug!("{}", String::from_utf8(stdout.stdout).unwrap());
+                debug!("{}", String::from_utf8(stdout.stderr).unwrap());
 
             },
-            Err(_) => println!("Could not execute send-notify"),
+            Err(_) => error!("Could not execute send-notify"),
         }
     }
 }
