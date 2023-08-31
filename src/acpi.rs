@@ -1,9 +1,15 @@
 use regex::Regex;
 use std::fmt;
 
+#[derive(Debug, PartialEq)]
+pub enum BatteryStatus {
+    Charging,
+    Discharging,
+    Unknown,
+}
 pub(super) struct AcpiOutput {
     // battery: String,
-    // status: String,
+    pub status: BatteryStatus,
     pub percent: u8,
     // remaining: String
 }
@@ -26,12 +32,12 @@ impl fmt::Debug for AcpiError {
 pub(crate) fn from_string(output: String) -> Result<AcpiOutput, AcpiError> {
     // let output_regex = Regex::new(r"Battery (.): (.*), (?<percent>..*)%, (.*) (.*)").unwrap();
     // "Battery (?<battery>.): (?<status>.*), (?<percent>..*)%, (?<eta>[\d:]*) (?<target>.*)";
-    let output_regex = Regex::new(r"Battery 0: .*, (?<percent>.*)%, .*").unwrap();
+    let output_regex = Regex::new(r"Battery 0: (?<status>.*), (?<percent>.*)%, .*").unwrap();
     match output_regex.captures(&output) {
         Some(captures) => {
             return Ok(AcpiOutput {
                 // battery: String::from("Battery 0"),
-                // status: String::from("discharging"),
+                status: from(captures.name("status").unwrap().as_str()),
                 percent: captures
                     .name("percent")
                     .unwrap()
@@ -45,9 +51,17 @@ pub(crate) fn from_string(output: String) -> Result<AcpiOutput, AcpiError> {
     }
 }
 
+fn from(as_str: &str) -> BatteryStatus {
+    match as_str {
+        "Charging" => BatteryStatus::Charging,
+        "Discharging" => BatteryStatus::Discharging,
+        _ => BatteryStatus::Unknown,
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use crate::acpi::from_string;
+    use crate::acpi::{from_string, BatteryStatus};
     #[test]
     fn should_extract_percent_when_charging() {
         let output = from_string("Battery 0: Charging, 76%, 04:47:12 until charged".to_string())
@@ -59,6 +73,7 @@ mod tests {
             "Percent should be {} (was: {})",
             expected_percent, output.percent
         );
+        assert_eq!(output.status, BatteryStatus::Charging);
     }
 
     #[test]
@@ -72,5 +87,6 @@ mod tests {
             "Percent should be {} (was: {})",
             expected_percent, output.percent
         );
+        assert_eq!(output.status, BatteryStatus::Discharging);
     }
 }

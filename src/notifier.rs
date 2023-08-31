@@ -7,7 +7,7 @@ pub(crate) struct CommandSettings {
 }
 pub(crate) const DEFAULT_COMMAND_SETTINGS: CommandSettings = CommandSettings {
     critical_percent: 15,
-    critical_notification_timeout: 10_000,
+    critical_notification_timeout: 2_000,
 };
 
 pub(crate) enum NotificationLevel {
@@ -21,6 +21,7 @@ pub(crate) trait Notifier {
     fn notify(&self, message: &str, level: NotificationLevel, duration: i32);
 
     fn notify_critical(&self, message: &str, duration: i32) {
+        println!("Sending critical notification: {duration}");
         self.notify(message, NotificationLevel::Critical, duration);
     }
 }
@@ -30,10 +31,18 @@ pub(crate) struct SendNotify {
 }
 impl SendNotify {
     fn execute(title: &str, level: &str, message: &str, duration: i32) {
-        Command::new("notify-send")
+        let output = Command::new("notify-send")
             .args(["-u", level, title, message, "-t", &duration.to_string()])
-            .output()
-            .expect("Could not execute notify-send");
+            .output();
+        match output {
+            Ok(stdout) => {
+                println!("send-notify executed");
+                println!("{}", String::from_utf8(stdout.stdout).unwrap());
+                println!("{}", String::from_utf8(stdout.stderr).unwrap());
+
+            },
+            Err(_) => println!("Could not execute send-notify"),
+        }
     }
 }
 impl Notifier for SendNotify {
@@ -46,7 +55,7 @@ impl Notifier for SendNotify {
             NotificationLevel::Low => todo!(),
             NotificationLevel::Normal => todo!(),
             NotificationLevel::Critical => {
-                SendNotify::execute(self.title, message, "critical", duration);
+                SendNotify::execute(self.title, "critical", message , duration);
             }
         }
     }
